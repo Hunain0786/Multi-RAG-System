@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+import asyncio
+import sys
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+# psycopg's async client requires the selector event loop on Windows.
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 from multirag.api.routes import chat as chat_route
 from multirag.api.routes import docs as docs_route
@@ -26,7 +32,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     log.info("startup", app_env=settings.app_env, pinecone_index=settings.pinecone_index)
 
     await open_pool()
-    ensure_index()  # idempotent — safe on every boot
+    try:
+        ensure_index()  # idempotent
+    except Exception as e:  # noqa: BLE001 — surface degraded state via /health
+        log.warning("pinecone.ensure_index.failed", error=str(e))
 
     try:
         yield

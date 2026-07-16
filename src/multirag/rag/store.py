@@ -1,4 +1,10 @@
-"""Pinecone adapter: upsert / query / delete."""
+"""Pinecone adapter: upsert / query / delete.
+
+Design note: everything lives in Pinecone's DEFAULT namespace. Scoping by
+`doc_type` is done via metadata filter (`{"doc_type": ...}`) so a single query
+can either search across all corpora or scope to one. Namespaces stay reserved
+for future per-tenant hard isolation.
+"""
 
 from __future__ import annotations
 
@@ -20,11 +26,8 @@ class Hit:
     metadata: dict[str, Any]
 
 
-def upsert(
-    vectors: list[tuple[str, list[float], dict[str, Any]]],
-    namespace: str | None = None,
-) -> int:
-    """Upsert (id, vector, metadata) triples. Returns count written."""
+def upsert(vectors: list[tuple[str, list[float], dict[str, Any]]]) -> int:
+    """Upsert (id, vector, metadata) triples into the default namespace."""
     if not vectors:
         return 0
     index = get_index()
@@ -32,23 +35,21 @@ def upsert(
     for i in range(0, len(vectors), UPSERT_BATCH_SIZE):
         batch = vectors[i:i + UPSERT_BATCH_SIZE]
         payload = [{"id": vid, "values": vec, "metadata": meta} for vid, vec, meta in batch]
-        index.upsert(vectors=payload, namespace=namespace or "")
+        index.upsert(vectors=payload)
         written += len(payload)
-    log.info("pinecone.upsert", count=written, namespace=namespace or "(default)")
+    log.info("pinecone.upsert", count=written)
     return written
 
 
 def query(
     vector: list[float],
     top_k: int = 6,
-    namespace: str | None = None,
     metadata_filter: dict[str, Any] | None = None,
 ) -> list[Hit]:
     index = get_index()
     resp = index.query(
         vector=vector,
         top_k=top_k,
-        namespace=namespace or "",
         include_metadata=True,
         include_values=False,
         filter=metadata_filter or None,
@@ -65,10 +66,20 @@ def query(
     return hits
 
 
-def delete_ids(ids: list[str], namespace: str | None = None) -> None:
+def delete_ids(ids: list[str]) -> None:
     if not ids:
         return
     index = get_index()
     for i in range(0, len(ids), 1000):
-        index.delete(ids=ids[i:i + 1000], namespace=namespace or "")
-    log.info("pinecone.delete", count=len(ids), namespace=namespace or "(default)")
+        index.delete(ids=ids[i:i + 1000])
+    log.info("pinecone.delete", count=len(ids))
+
+
+def delete_namespace(namespace: str) -> None:
+    """Drop all vectors from a legacy namespace. Used during migration."""
+    index = get_index()
+    try:
+        index.delete(delete_all=True, namespace=namespace)
+        log.info("pinecone.delete_namespace", namespace=namespace)
+    except Exception as e:  # noqa: BLE001
+        log.warning("pinecone.delete_namespace.failed", namespace=namespace, error=str(e))

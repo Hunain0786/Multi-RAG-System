@@ -28,7 +28,7 @@ async def search(
     tags: list[str] | None = None,
     metadata_filter: dict[str, Any] | None = None,
 ) -> list[RetrievedChunk]:
-    """Semantic search. `doc_type` maps to Pinecone namespace; `tags` merges into filter."""
+    """Semantic search. Scopes by metadata (`doc_type`, `tags`), not namespace."""
     if not query.strip():
         return []
 
@@ -36,12 +36,12 @@ async def search(
     vector = await asyncio.to_thread(embedder.embed_query, query)
 
     flt = dict(metadata_filter or {})
+    if doc_type:
+        flt["doc_type"] = doc_type
     if tags:
         flt.setdefault("tags", {"$in": tags})
 
-    hits = await asyncio.to_thread(
-        store_query, vector, top_k, doc_type, flt or None
-    )
+    hits = await asyncio.to_thread(store_query, vector, top_k, flt or None)
 
     return [
         RetrievedChunk(

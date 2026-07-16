@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import random
+import sys
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 
@@ -17,6 +18,10 @@ import psycopg
 from psycopg.rows import tuple_row
 
 from multirag.config import get_settings
+
+# psycopg's async client refuses the default Windows ProactorEventLoop.
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 RNG = random.Random(42)
 

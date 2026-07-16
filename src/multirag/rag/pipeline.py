@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import secrets
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -24,6 +25,10 @@ import psycopg
 from psycopg.rows import dict_row
 
 from multirag.config import get_settings
+
+# psycopg's async client refuses the default Windows ProactorEventLoop.
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 from multirag.logging import get_logger
 from multirag.rag.chunking import Chunk, chunk_text
 from multirag.rag.embedder import get_embedder
@@ -104,10 +109,14 @@ async def ingest_file(
             tokens = sum(_estimate_tokens(c.text) for c in chunks)
 
             # Insert Doc row first so we have a stable doc_id for chunk IDs.
+            # Prisma's cuid() default is client-side; when we insert via psycopg
+            # we must supply the id ourselves.
+            doc_id = "doc_" + secrets.token_hex(12)
             await cur.execute(
-                "INSERT INTO docs (source_path, doc_type, sha256, chunk_count, tokens, meta) "
-                "VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;",
+                "INSERT INTO docs (id, source_path, doc_type, sha256, chunk_count, tokens, meta) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s);",
                 (
+                    doc_id,
                     str(path),
                     resolved_type,
                     sha,
@@ -116,11 +125,9 @@ async def ingest_file(
                     json.dumps({"tags": tags or []}),
                 ),
             )
-            row = await cur.fetchone()
-            doc_id: str = row["id"]
             await conn.commit()
 
-    # Upsert vectors to Pinecone (namespace = doc_type for hard scoping).
+    # Upsert vectors into the default namespace; doc_type lives in metadata.
     vectors: list[tuple[str, list[float], dict[str, Any]]] = []
     for c, emb in zip(chunks, embeddings, strict=True):
         vid = f"{doc_id}#{c.index}"
@@ -135,7 +142,7 @@ async def ingest_file(
         }
         vectors.append((vid, emb, meta))
 
-    upsert(vectors, namespace=resolved_type)
+    upsert(vectors)
 
     log.info(
         "ingest.done",
@@ -152,18 +159,17 @@ async def delete_doc(doc_id: str) -> None:
     async with await psycopg.AsyncConnection.connect(settings.database_url) as conn:
         async with conn.cursor(row_factory=dict_row) as cur:
             await cur.execute(
-                "SELECT doc_type, chunk_count FROM docs WHERE id = %s;", (doc_id,)
+                "SELECT chunk_count FROM docs WHERE id = %s;", (doc_id,)
             )
             row = await cur.fetchone()
             if not row:
                 return
-            doc_type = row["doc_type"]
             n = int(row["chunk_count"])
             await cur.execute("DELETE FROM docs WHERE id = %s;", (doc_id,))
             await conn.commit()
 
     ids = [f"{doc_id}#{i}" for i in range(n)]
-    delete_ids(ids, namespace=doc_type)
+    delete_ids(ids)
     log.info("doc.deleted", doc_id=doc_id, chunks=n)
 
 

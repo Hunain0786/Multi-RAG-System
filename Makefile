@@ -38,7 +38,7 @@ psql:
 	docker compose exec postgres psql -U multirag -d multirag
 
 prisma-push:
-	npx --yes prisma db push --schema prisma/schema.prisma
+	npx --yes prisma@6 db push --schema prisma/schema.prisma
 
 seed:
 	python -m prisma.seed
@@ -50,7 +50,7 @@ ingest:
 	python -m multirag.rag.pipeline ./docs
 
 dev:
-	uvicorn multirag.main:app --reload --host 0.0.0.0 --port 8000
+	python -m multirag --reload
 
 test:
 	pytest -q

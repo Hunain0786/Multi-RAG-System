@@ -12,8 +12,13 @@ TOOL_SCHEMA: dict[str, Any] = {
     "name": NAME,
     "description": (
         "Semantic search over the ingested documents (policies, manuals, FAQs). "
-        "Use for questions grounded in prose (return policy, warranty length, "
-        "how-to instructions, FAQ answers). Optionally filter by doc_type or tags."
+        "Use for questions grounded in prose (return policy, warranty details, "
+        "how-to instructions, FAQ answers). "
+        "IMPORTANT: leave `doc_type` UNSET by default so the search spans every "
+        "corpus — a question about 'warranty' may live in a manual, an FAQ, or a "
+        "policy doc, and pre-filtering by doc_type is the leading cause of "
+        "false-negative retrievals. Only set doc_type when the user explicitly "
+        "names the corpus (e.g. 'in the FAQ...', 'what does the manual say...')."
     ),
     "input_schema": {
         "type": "object",
@@ -23,7 +28,10 @@ TOOL_SCHEMA: dict[str, Any] = {
             "doc_type": {
                 "type": "string",
                 "enum": ["policy", "manual", "faq", "other"],
-                "description": "Scope search to a single doc_type namespace.",
+                "description": (
+                    "OPTIONAL. Scope search to one doc_type via metadata filter. "
+                    "Leave unset unless the user explicitly names the corpus."
+                ),
             },
             "tags": {
                 "type": "array",

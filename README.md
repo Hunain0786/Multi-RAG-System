@@ -22,10 +22,11 @@ safe parameterised SQL — the model never writes SQL.
 - Node.js 18+ (only for `npx prisma db push` — the runtime uses `psycopg`)
 - A Pinecone account (Serverless free tier is enough) and an API key.
 - An Anthropic API key.
-- Embeddings: **no API key needed by default** — the app uses the local
-  `sentence-transformers` model `BAAI/bge-large-en-v1.5` (1024-dim, ~1.3 GB
-  download on first run, cached under `~/.cache/huggingface/`). Set
-  `EMBED_PROVIDER=openai` in `.env` if you'd rather call a hosted API.
+- An OpenAI API key (used for the embedding model,
+  `text-embedding-3-large` @ 1024 dim). If you'd rather run embeddings locally
+  install the optional extra: `pip install -e ".[local]"` and set
+  `EMBED_PROVIDER=sentence_transformers` in `.env` (downloads
+  `BAAI/bge-large-en-v1.5`, ~1.3 GB, no API key needed after that).
 
 ## First-time setup
 

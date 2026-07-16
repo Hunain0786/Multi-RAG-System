@@ -27,13 +27,16 @@ class Settings(BaseSettings):
     anthropic_temperature: float = 0.0
 
     # ------- Embeddings -------
-    # `sentence_transformers` = local model, no API key, downloaded from HuggingFace.
-    # Change to `openai` or `voyage` if you'd rather call a hosted API instead.
-    embed_provider: Literal["sentence_transformers", "openai", "voyage"] = "sentence_transformers"
-    embed_model: str = "BAAI/bge-large-en-v1.5"
+    # `openai`                : hosted API, needs OPENAI_API_KEY.  (default)
+    # `voyage`                : hosted API, needs VOYAGE_API_KEY.
+    # `sentence_transformers` : local HuggingFace model.  Requires the `local`
+    #                           extra (`pip install -e ".[local]"`) which pulls torch.
+    embed_provider: Literal["openai", "voyage", "sentence_transformers"] = "openai"
+    embed_model: str = "text-embedding-3-large"
     embed_dimensions: int = 1024
-    # Query/document prefixes for sentence-transformers only. BGE-family models
-    # expect a query prefix; e5-family models expect both. Leave blank if unsure.
+    # Only used by the sentence-transformers path. BGE-family models expect a
+    # query prefix but no document prefix; e5-family expects both. Ignored by
+    # OpenAI / Voyage (those handle task-type internally).
     embed_query_prefix: str = "Represent this sentence for searching relevant passages: "
     embed_doc_prefix: str = ""
     # Only needed for their respective providers.

@@ -17,6 +17,8 @@ build/
 node_modules/
 prisma/*.db
 prisma/*.db-journal
+package.json
+package-lock.json
 
 # Ingested docs (keep folder, ignore user uploads)
 docs/_uploads/

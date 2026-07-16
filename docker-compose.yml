@@ -7,7 +7,9 @@ services:
       POSTGRES_PASSWORD: multirag
       POSTGRES_DB: multirag
     ports:
-      - "5432:5432"
+      # Host port 5434 (5432 and 5433 are already in use by other local containers).
+      # Match this with DATABASE_URL in .env.
+      - "5434:5432"
     volumes:
       - multirag_pgdata:/var/lib/postgresql/data
     healthcheck:
