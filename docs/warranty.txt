@@ -1,0 +1,42 @@
+WARRANTY MANUAL
+
+Effective 2026-01-01
+
+1. Coverage window
+   All Electronics-category products carry a 2-year limited warranty against
+   manufacturing defects, starting on the delivery date. Apparel and Home
+   products carry a 1-year limited warranty. Books, Grocery, and consumables
+   are not warrantied.
+
+2. What is covered
+   - Component failures under normal use.
+   - Battery capacity dropping below 70% of the rated value within the first
+     12 months (Electronics only).
+   - Peeling coatings, broken zippers, and stitching failures (Apparel only,
+     within the first 90 days).
+
+3. What is NOT covered
+   - Accidental damage, drops, spills, submersion.
+   - Cosmetic wear (scratches, fading) that does not affect function.
+   - Damage caused by third-party accessories or unauthorised repairs.
+   - Loss or theft (register the serial number with your account so you can
+     transfer the warranty to a replacement device if needed).
+
+4. How to file a warranty claim
+   a. Locate the order number (or serial number for Electronics).
+   b. Email support@example.com with the number, a description of the issue,
+      and photos or a short video where relevant.
+   c. Our support team will respond within 2 business days with either a
+      remote fix, a replacement, or a repair depot address.
+   d. Turnaround for repairs is typically 7-14 business days after we receive
+      the device.
+
+5. Extended protection plans
+   Purchased separately at checkout. These extend the coverage window by an
+   additional 12 or 24 months and add accidental-damage protection with a
+   deductible ($30 for Apparel/Home items, $75 for Electronics).
+
+6. Transferability
+   Warranty coverage travels with the product, not the buyer, provided the
+   original serial number is intact. Contact support to update the registered
+   owner after a private sale or gift.

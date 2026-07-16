@@ -1,0 +1,22 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+.env.local
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Prisma
+node_modules/
+prisma/*.db
+prisma/*.db-journal
+
+# Ingested docs (keep folder, ignore user uploads)
+docs/_uploads/

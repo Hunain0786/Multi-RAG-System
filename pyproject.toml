@@ -1,0 +1,65 @@
+[project]
+name = "multirag"
+version = "0.1.0"
+description = "Multi-source RAG service: pgvector-free Postgres SQL semantic layer + Pinecone doc search + Anthropic tool-use loop, served over FastAPI."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "multi-rag" }]
+license = { text = "MIT" }
+
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "python-multipart>=0.0.19",
+    "sse-starlette>=2.1",
+    "psycopg[binary,pool]>=3.2",
+    "anthropic>=0.39",
+    "openai>=1.54",
+    "sentence-transformers>=3.0",
+    "pinecone>=5.3",
+    "pypdf>=5.1",
+    "tiktoken>=0.8",
+    "httpx>=0.27",
+    "structlog>=24.4",
+    "orjson>=3.10",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "respx>=0.21",
+    "ruff>=0.7",
+    "mypy>=1.13",
+    "faker>=30.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/multirag"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+ignore_missing_imports = true
