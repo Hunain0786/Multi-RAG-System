@@ -46,6 +46,11 @@ const NEUTRAL = {
   card: "#FFFFFF",
 };
 
+// Categorical charts get pan/zoom (dataZoom) when there are enough points that
+// axis labels would otherwise collide. 15 was chosen empirically: below that
+// every label fits at the default width of the chart column.
+const ZOOM_THRESHOLD = 15;
+
 interface MetricChartProps {
   data: CompileMetricResult;
 }
@@ -113,6 +118,14 @@ export function MetricChart({ data }: MetricChartProps) {
 
       {tab === "chart" ? (
         <div className="rounded-md border bg-card p-2">
+          {rows.length > ZOOM_THRESHOLD && chart_hint.type !== "pie" && (
+            <div className="mb-1 flex items-center justify-between px-1 text-[10px] text-muted-foreground">
+              <span>
+                Showing {ZOOM_THRESHOLD} of {rows.length} — scroll to zoom,
+                drag to pan
+              </span>
+            </div>
+          )}
           <EChartsBody
             data={data}
             xKey={xKey}
@@ -165,10 +178,18 @@ function EChartsBody({
     [data, xKey, xLabel, yLabel, valueFormat],
   );
 
+  // Give the slider variant extra vertical room (~4rem) so the ~2rem-tall
+  // dataZoom slider doesn't squash the plot area.
+  const zoomEnabled =
+    data.rows.length > ZOOM_THRESHOLD &&
+    data.chart_hint.type !== "pie" &&
+    data.chart_hint.type !== "kpi";
+  const height = zoomEnabled ? "22rem" : "18rem";
+
   return (
     <ReactECharts
       option={option}
-      style={{ height: "18rem", width: "100%" }}
+      style={{ height, width: "100%" }}
       opts={{ renderer: "svg" }}
       notMerge
       lazyUpdate
@@ -190,6 +211,63 @@ function buildOption(
 
   const fmt = (v: number | string | null | undefined): string =>
     formatCell(v, valueFormat);
+
+  // Pan + zoom is only meaningful when we have a categorical x axis and enough
+  // points to actually need it. For pie/kpi we skip it.
+  const zoomEnabled =
+    rows.length > ZOOM_THRESHOLD &&
+    chart_hint.type !== "pie" &&
+    chart_hint.type !== "kpi";
+
+  // Initial visible window: show the first ZOOM_THRESHOLD categories, then let
+  // the user pan/scroll to reveal the rest. Percentages, not indices.
+  const initialEnd = zoomEnabled ? (ZOOM_THRESHOLD / rows.length) * 100 : 100;
+
+  const dataZoom: EChartsOption["dataZoom"] = zoomEnabled
+    ? [
+        // Mouse wheel + trackpad pinch + touch pinch to zoom. Click-drag inside
+        // the plot area to pan.
+        {
+          type: "inside",
+          xAxisIndex: 0,
+          start: 0,
+          end: initialEnd,
+          zoomOnMouseWheel: true,
+          moveOnMouseMove: true,
+          moveOnMouseWheel: false,
+          preventDefaultMouseMove: true,
+        },
+        // Bottom slider with brush handles for explicit pan/zoom.
+        {
+          type: "slider",
+          xAxisIndex: 0,
+          start: 0,
+          end: initialEnd,
+          height: 20,
+          bottom: 6,
+          borderColor: NEUTRAL.border,
+          backgroundColor: NEUTRAL.muted,
+          fillerColor: withAlpha(CHART_COLORS[0], 0.18),
+          handleStyle: {
+            color: CHART_COLORS[0],
+            borderColor: CHART_COLORS[0],
+          },
+          moveHandleStyle: { color: CHART_COLORS[0] },
+          selectedDataBackground: {
+            lineStyle: { color: CHART_COLORS[0] },
+            areaStyle: { color: withAlpha(CHART_COLORS[0], 0.25) },
+          },
+          dataBackground: {
+            lineStyle: { color: NEUTRAL.border },
+            areaStyle: { color: NEUTRAL.muted },
+          },
+          textStyle: { color: NEUTRAL.mutedFg, fontSize: 10 },
+          labelFormatter: (_v, valueStr) =>
+            truncate(String(valueStr ?? ""), 14),
+          brushSelect: false,
+        },
+      ]
+    : undefined;
 
   const tooltip: EChartsOption["tooltip"] = {
     trigger: chart_hint.type === "pie" ? "item" : "axis",
@@ -226,7 +304,8 @@ function buildOption(
   const grid: EChartsOption["grid"] = {
     top: 24,
     right: 16,
-    bottom: 40,
+    // Extra bottom room when the dataZoom slider is present.
+    bottom: zoomEnabled ? 60 : 40,
     left: 56,
     containLabel: true,
   };
@@ -237,8 +316,11 @@ function buildOption(
     axisLabel: {
       color: NEUTRAL.mutedFg,
       fontSize: 11,
-      interval: 0,
+      // When zoomable, let ECharts auto-thin labels; when static, force every
+      // label to show so short lists stay legible.
+      interval: zoomEnabled ? "auto" : 0,
       rotate: categories.some((c) => c.length > 10) ? 20 : 0,
+      hideOverlap: true,
     },
     axisLine: { lineStyle: { color: NEUTRAL.border } },
     axisTick: { alignWithLabel: true },
@@ -315,6 +397,7 @@ function buildOption(
         grid,
         xAxis,
         yAxis,
+        dataZoom,
         color: CHART_COLORS,
         series: [
           {
@@ -324,6 +407,9 @@ function buildOption(
             smooth: true,
             symbol: "circle",
             symbolSize: 6,
+            // With hundreds of points enabled, hide markers until hover so the
+            // line doesn't get visually noisy.
+            showSymbol: !zoomEnabled,
             lineStyle: { width: 2 },
             areaStyle:
               chart_hint.type === "area"
@@ -352,6 +438,7 @@ function buildOption(
         grid,
         xAxis,
         yAxis,
+        dataZoom,
         color: CHART_COLORS,
         series: [
           {

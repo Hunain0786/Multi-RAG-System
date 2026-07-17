@@ -3,6 +3,7 @@
 import { AlertTriangle, Sparkles } from "lucide-react";
 
 import { Markdown } from "@/components/chat/Markdown";
+import { StreamingIndicator } from "@/components/chat/StreamingIndicator";
 import { ToolCard } from "@/components/chat/tools/ToolCard";
 import type { AssistantChatMessage } from "@/lib/types";
 
@@ -20,12 +21,6 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
       </div>
 
       <div className="min-w-0 flex-1 space-y-3">
-        {message.blocks.length === 0 && message.streaming && (
-          <div className="text-sm italic text-muted-foreground">
-            Thinking…
-          </div>
-        )}
-
         {message.blocks.map((block, idx) => {
           if (block.kind === "text") {
             const isLast = idx === message.blocks.length - 1;
@@ -45,6 +40,8 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
           if (!tc) return null;
           return <ToolCard key={tc.id} call={tc} />;
         })}
+
+        {message.streaming && <StreamingIndicator message={message} />}
 
         {message.errorText && (
           <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">

@@ -146,6 +146,23 @@
 }
 
 /* --------------------------------------------------------------------------
+ * Streaming indicator — three staggered dots.
+ * Consumed by `<StreamingIndicator>` via `animate-[dotpulse_1.2s_ease-in-out_infinite]`.
+ * -------------------------------------------------------------------------- */
+@keyframes dotpulse {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.75);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* --------------------------------------------------------------------------
  * Markdown block styling — scoped to `.markdown` so it doesn't leak elsewhere.
  * -------------------------------------------------------------------------- */
 .markdown {

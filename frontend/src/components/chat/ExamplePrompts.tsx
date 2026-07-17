@@ -1,37 +1,40 @@
 "use client";
 
 import {
-  BarChart3,
-  BookOpen,
-  Brain,
-  Layers,
+  Clock,
+  Package,
+  PieChart,
   Sparkles,
+  TrendingUp,
+  Wallet,
 } from "lucide-react";
 
 const PROMPTS: Array<{ label: string; icon: React.ReactNode; prompt: string }> = [
   {
-    label: "Top 5 products by revenue this quarter",
-    icon: <BarChart3 className="size-4 text-[--color-chart-1]" />,
+    label: "Salary expenses by role",
+    icon: <Wallet className="size-4 text-[--color-chart-1]" />,
     prompt:
-      "What are the top 5 products by revenue this quarter, grouped by product category?",
+      "Current salary expenses by role — see where salary costs are concentrated",
   },
   {
-    label: "What's our return policy?",
-    icon: <BookOpen className="size-4 text-[--color-chart-2]" />,
-    prompt:
-      "What is our return policy? Cite the specific timeframes and conditions from the policy doc.",
+    label: "Hiring trends over time",
+    icon: <TrendingUp className="size-4 text-[--color-chart-2]" />,
+    prompt: "Hiring trends over time",
   },
   {
-    label: "Refund rate + policy for electronics",
-    icon: <Layers className="size-4 text-[--color-chart-3]" />,
-    prompt:
-      "How many refunds did we process in the last 90 days, and what does our policy say about electronics refunds?",
+    label: "Revenue by category (enterprise)",
+    icon: <PieChart className="size-4 text-[--color-chart-3]" />,
+    prompt: "Revenue by category for enterprise customers only",
   },
   {
-    label: "Remember a preference",
-    icon: <Brain className="size-4 text-[--color-chart-4]" />,
-    prompt:
-      "Remember that I always want revenue reports in USD and grouped by month.",
+    label: "US orders delivered last month",
+    icon: <Package className="size-4 text-[--color-chart-4]" />,
+    prompt: "How many orders from the US were delivered last month?",
+  },
+  {
+    label: "Average employee tenure",
+    icon: <Clock className="size-4 text-[--color-chart-5]" />,
+    prompt: "What's the average tenure of our employees?",
   },
 ];
 
