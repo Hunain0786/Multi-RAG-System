@@ -25,6 +25,12 @@ if sys.platform == "win32":
 
 RNG = random.Random(42)
 
+# Lightweight seed profile for hosted DBs (Neon): keep row counts small so
+# seeding completes quickly during development.
+CUSTOMER_COUNT = 480
+ORDER_COUNT = 500
+MAX_ITEMS_PER_ORDER = 1
+
 COUNTRIES = ["US", "GB", "IN", "DE", "FR", "CA", "AU", "SG", "AE", "JP"]
 CITIES = {
     "US": ["New York", "San Francisco", "Austin", "Seattle"],
@@ -153,7 +159,7 @@ async def seed() -> None:
 
             # ------- customers -------
             customer_ids: list[str] = []
-            for i in range(500):
+            for i in range(CUSTOMER_COUNT):
                 cid = f"cus_{i:04d}"
                 first = RNG.choice(FIRST_NAMES)
                 last = RNG.choice(LAST_NAMES)
@@ -235,7 +241,7 @@ async def seed() -> None:
             ]
 
             # ------- orders + order_items + transactions -------
-            order_count = 5_000
+            order_count = ORDER_COUNT
             item_count = 0
             txn_count = 0
             for i in range(order_count):
@@ -247,7 +253,9 @@ async def seed() -> None:
                 delivered = created + timedelta(days=RNG.randint(1, 10)) if status in ("delivered", "shipped") else None
 
                 # Order lines
-                n_items = RNG.randint(1, 4)
+                # Keep downstream table sizes bounded (order_items/transactions)
+                # so total rows stay manageable on hosted DBs.
+                n_items = RNG.randint(1, MAX_ITEMS_PER_ORDER)
                 chosen = RNG.sample(product_ids, k=n_items)
                 total = Decimal("0.00")
                 lines: list[tuple[str, str, int, Decimal]] = []
@@ -273,28 +281,35 @@ async def seed() -> None:
                         (iid, oid, pid, qty, unit_price),
                     )
 
-                # Transactions per order
+                # At most one transaction per order (except cancelled).
                 if status not in ("cancelled",):
-                    n_txn = 1 if status != "refunded" else 2
-                    for k in range(n_txn):
-                        method = _weighted(TXN_METHODS_WEIGHTS)
-                        if k == 0:
-                            tstatus = "succeeded" if status != "refunded" else "succeeded"
-                        else:
-                            tstatus = "refunded"
-                        # sprinkle in some failures
-                        if k == 0 and RNG.random() < 0.03:
-                            tstatus = _weighted(TXN_STATUS_WEIGHTS)
-                        processed = created + timedelta(minutes=RNG.randint(1, 90))
-                        refunded_at = processed + timedelta(days=RNG.randint(1, 14)) if tstatus == "refunded" else None
-                        await cur.execute(
-                            "INSERT INTO transactions (id, order_id, method, status, "
-                            "amount, currency, processed_at, refunded_at) "
-                            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s);",
-                            (f"txn_{txn_count:06d}", oid, method, tstatus, total, "USD",
-                             processed, refunded_at),
-                        )
-                        txn_count += 1
+                    method = _weighted(TXN_METHODS_WEIGHTS)
+                    tstatus = "refunded" if status == "refunded" else "succeeded"
+                    # Sprinkle in some failures for non-refunded orders.
+                    if status != "refunded" and RNG.random() < 0.03:
+                        tstatus = _weighted(TXN_STATUS_WEIGHTS)
+                    processed = created + timedelta(minutes=RNG.randint(1, 90))
+                    refunded_at = (
+                        processed + timedelta(days=RNG.randint(1, 14))
+                        if tstatus == "refunded"
+                        else None
+                    )
+                    await cur.execute(
+                        "INSERT INTO transactions (id, order_id, method, status, "
+                        "amount, currency, processed_at, refunded_at) "
+                        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s);",
+                        (
+                            f"txn_{txn_count:06d}",
+                            oid,
+                            method,
+                            tstatus,
+                            total,
+                            "USD",
+                            processed,
+                            refunded_at,
+                        ),
+                    )
+                    txn_count += 1
 
             print(f"  inserted {order_count} orders + {item_count} order_items + {txn_count} transactions")
             await conn.commit()

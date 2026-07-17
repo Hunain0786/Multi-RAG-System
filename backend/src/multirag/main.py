@@ -18,6 +18,7 @@ from multirag.api.routes import chat as chat_route
 from multirag.api.routes import conversations as conversations_route
 from multirag.api.routes import docs as docs_route
 from multirag.api.routes import health as health_route
+from multirag.api.routes import insights as insights_route
 from multirag.api.routes import memory as memory_route
 from multirag.config import get_settings
 from multirag.db.pool import close_pool, open_pool
@@ -67,6 +68,7 @@ def create_app() -> FastAPI:
     app.include_router(docs_route.router)
     app.include_router(conversations_route.router)
     app.include_router(memory_route.router)
+    app.include_router(insights_route.router)
     return app
 
 

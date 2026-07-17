@@ -1,0 +1,14 @@
+FROM public.ecr.aws/lambda/python:3.12
+
+# Install backend package + runtime deps into the Lambda task root.
+WORKDIR ${LAMBDA_TASK_ROOT}
+
+COPY pyproject.toml README.md ./
+COPY src ./src
+
+RUN python -m pip install --upgrade pip && \
+    pip install --no-cache-dir .
+
+# Lambda handler: "<module>.<symbol>"
+CMD ["multirag.lambda_handler.handler"]
+

@@ -46,6 +46,81 @@ Health check:
 curl -s http://localhost:8000/health | jq
 ```
 
+## AWS Lambda via Mangum
+
+The backend now includes a Lambda handler at `src/multirag/lambda_handler.py`:
+
+- FastAPI app: `multirag.main:app`
+- Lambda handler: `multirag.lambda_handler.handler` (Mangum adapter)
+
+For container-based Lambda deploys, use `Dockerfile.lambda`.
+
+### Build and push image to ECR
+
+Set these once in your shell:
+
+```bash
+AWS_REGION=us-east-1
+AWS_ACCOUNT_ID=123456789012
+ECR_REPO=multi-rag-backend
+IMAGE_TAG=latest
+```
+
+1) Create ECR repo (idempotent):
+
+```bash
+aws ecr describe-repositories --repository-names "$ECR_REPO" --region "$AWS_REGION" >/dev/null 2>&1 || \
+aws ecr create-repository --repository-name "$ECR_REPO" --region "$AWS_REGION"
+```
+
+2) Login Docker to ECR:
+
+```bash
+aws ecr get-login-password --region "$AWS_REGION" | \
+docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+```
+
+3) Build Lambda image:
+
+```bash
+docker build -f Dockerfile.lambda -t "$ECR_REPO:$IMAGE_TAG" .
+```
+
+4) Tag image for ECR:
+
+```bash
+docker tag "$ECR_REPO:$IMAGE_TAG" \
+  "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG"
+```
+
+5) Push:
+
+```bash
+docker push "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG"
+```
+
+6) Update Lambda to use that image:
+
+```bash
+aws lambda update-function-code \
+  --function-name multi-rag-backend \
+  --image-uri "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG" \
+  --region "$AWS_REGION"
+```
+
+### Lambda environment variables
+
+Configure the same env vars you use locally (`DATABASE_URL`, `ANTHROPIC_API_KEY`,
+`OPENAI_API_KEY`, `PINECONE_API_KEY`, `PINECONE_INDEX`, etc.) in the Lambda
+function configuration.
+
+Notes:
+
+- `DATABASE_URL` must be reachable from Lambda (Neon works well for this).
+- Lambda/API Gateway are not ideal for long-lived SSE streams; keep this in
+  mind for `/chat` streaming behavior and consider a non-Lambda runtime if you
+  need uninterrupted long streams.
+
 ## Project layout
 
 ```
