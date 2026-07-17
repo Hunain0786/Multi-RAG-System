@@ -280,3 +280,37 @@ export interface ConversationMemoryResponse {
   conversation_id: string;
   latest_episode: EpisodeSummary | null;
 }
+
+/** ------------------------------------------------------------------
+ * Live insights — mirrors backend/src/multirag/insights/engine.py.
+ * ------------------------------------------------------------------ */
+
+export type InsightSeverity =
+  | "good"
+  | "info"
+  | "low"
+  | "med"
+  | "high"
+  | "unknown";
+
+export type InsightCategory = "sales" | "inventory" | "finance" | "hr" | "ops";
+
+export interface Insight {
+  id: string;
+  severity: InsightSeverity;
+  category: InsightCategory | string;
+  title: string;
+  detail: string;
+  metric: string | null;
+  value: number | null;
+  prior_value: number | null;
+  delta_pct: number | null;
+  unit: MetricFormat | string | null;
+  generated_at: string;
+}
+
+export interface InsightsResponse {
+  generated_at: string;
+  counts: Record<InsightSeverity, number>;
+  items: Insight[];
+}

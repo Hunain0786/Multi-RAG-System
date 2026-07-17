@@ -5,6 +5,7 @@ import type {
   DocListResponse,
   DocType,
   HealthResponse,
+  InsightsResponse,
   MemoryFactListResponse,
 } from "@/lib/types";
 
@@ -106,4 +107,12 @@ export async function getConversationMemory(
       cache: "no-store",
     }),
   );
+}
+
+// ---------------------------------------------------------------------------
+// Live insights
+// ---------------------------------------------------------------------------
+
+export async function getInsights(): Promise<InsightsResponse> {
+  return unwrap(await fetch("/api/insights", { cache: "no-store" }));
 }

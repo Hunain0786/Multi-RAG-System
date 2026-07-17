@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
+  Activity,
   Brain,
   ChevronDown,
   Database,
@@ -197,6 +198,13 @@ export function Header({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/live-updates" className="gap-1.5">
+              <Activity className="size-4" />
+              <span className="hidden sm:inline">Live Updates</span>
+            </Link>
+          </Button>
 
           <Button asChild variant="ghost" size="sm">
             <Link href="/memory" className="gap-1.5">
