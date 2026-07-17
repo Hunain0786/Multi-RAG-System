@@ -1,62 +1,62 @@
-.PHONY: help install up down logs psql prisma-push seed pinecone-init ingest dev test lint format
+.PHONY: help install up down logs seed ingest dev dev-backend dev-frontend test lint format frontend-install frontend-build
 
 help:
-	@echo "make install       - install python deps (uv preferred)"
-	@echo "make up            - docker compose up postgres + push prisma schema + seed + pinecone-init"
-	@echo "make down          - docker compose down (keeps volume)"
-	@echo "make down-clean    - docker compose down -v (drops volume)"
-	@echo "make prisma-push   - prisma db push"
-	@echo "make seed          - populate demo e-commerce data"
-	@echo "make pinecone-init - idempotently create the Pinecone index"
-	@echo "make ingest        - ingest every file under ./docs into Pinecone"
-	@echo "make dev           - uvicorn --reload"
-	@echo "make test          - pytest"
-	@echo "make lint          - ruff check"
-	@echo "make format        - ruff format"
+	@echo "Backend (delegates to backend/Makefile):"
+	@echo "  make install         - pip install -e '.[dev]' in backend/"
+	@echo "  make up              - docker compose up postgres + prisma push + seed + pinecone-init"
+	@echo "  make down            - docker compose down (keeps volume)"
+	@echo "  make seed            - populate demo e-commerce data"
+	@echo "  make ingest          - ingest backend/docs/* into Pinecone"
+	@echo "  make dev-backend     - uvicorn --reload on :8000"
+	@echo "  make test            - pytest -q"
+	@echo "  make lint            - ruff check"
+	@echo ""
+	@echo "Frontend:"
+	@echo "  make frontend-install - npm install in frontend/"
+	@echo "  make dev-frontend     - next dev on :3000"
+	@echo "  make frontend-build   - next build"
+	@echo ""
+	@echo "Both:"
+	@echo "  make dev             - run backend + frontend in parallel"
 
 install:
-	python -m pip install -e ".[dev]"
+	$(MAKE) -C backend install
 
 up:
-	docker compose up -d postgres
-	@echo "Waiting for Postgres to become healthy..."
-	@until docker compose exec -T postgres pg_isready -U multirag -d multirag >/dev/null 2>&1; do sleep 1; done
-	$(MAKE) prisma-push
-	$(MAKE) seed
-	$(MAKE) pinecone-init
+	$(MAKE) -C backend up
 
 down:
-	docker compose down
-
-down-clean:
-	docker compose down -v
+	$(MAKE) -C backend down
 
 logs:
-	docker compose logs -f postgres
-
-psql:
-	docker compose exec postgres psql -U multirag -d multirag
-
-prisma-push:
-	npx --yes prisma@6 db push --schema prisma/schema.prisma
+	$(MAKE) -C backend logs
 
 seed:
-	python -m prisma.seed
-
-pinecone-init:
-	python -m multirag.rag.pinecone_client
+	$(MAKE) -C backend seed
 
 ingest:
-	python -m multirag.rag.pipeline ./docs
-
-dev:
-	python -m multirag --reload
+	$(MAKE) -C backend ingest
 
 test:
-	pytest -q
+	$(MAKE) -C backend test
 
 lint:
-	ruff check src tests
+	$(MAKE) -C backend lint
 
 format:
-	ruff format src tests
+	$(MAKE) -C backend format
+
+dev-backend:
+	$(MAKE) -C backend dev
+
+frontend-install:
+	npm --prefix frontend install
+
+frontend-build:
+	npm --prefix frontend run build
+
+dev-frontend:
+	npm --prefix frontend run dev
+
+dev:
+	$(MAKE) -j2 dev-backend dev-frontend
