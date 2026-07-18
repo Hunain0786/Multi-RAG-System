@@ -22,6 +22,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Literal
 
+from multirag.db.pool import fetch_conn
 from multirag.logging import get_logger
 from multirag.semantic.compile import (
     CompiledComposite,
@@ -32,6 +33,36 @@ from multirag.semantic.compile import (
 )
 
 log = get_logger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Cold-start guard
+# ---------------------------------------------------------------------------
+#
+# When the Postgres backend is a serverless offering (e.g. Neon), the compute
+# suspends after ~5 min of idle. The very first request after that has to
+# wake the compute, which typically takes 3-10s. If /insights fires 4
+# parallel checks straight into a cold pool, they all race to reconnect,
+# and psycopg_pool's default 30s acquisition timeout can expire on ALL of
+# them at once (see PoolTimeout in local dev logs).
+#
+# Fix: pay the cold-start cost ONCE, on a single connection, before the
+# parallel fan-out. If this succeeds every subsequent check is essentially
+# free because the pool already holds an open, warm connection.
+
+
+async def _prewarm(timeout_s: float = 45.0) -> bool:
+    """Fire a trivial query so the pool opens (and Neon wakes) before fan-out."""
+    try:
+        async with asyncio.timeout(timeout_s):
+            async with fetch_conn() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute("SELECT 1;")
+                    await cur.fetchone()
+        return True
+    except Exception as e:  # noqa: BLE001
+        log.warning("insights.prewarm.failed", error=str(e))
+        return False
 
 
 Severity = Literal["good", "info", "low", "med", "high", "unknown"]
@@ -546,19 +577,58 @@ async def _check_top_category_mover_30d() -> list[Insight]:
 # ---------------------------------------------------------------------------
 
 
+CHECKS: tuple[tuple[str, Any], ...] = (
+    ("sales_kpis_30d", _check_sales_kpis_30d),
+    ("finance_health_30d", _check_finance_health_30d),
+    ("inventory_now", _check_inventory_now),
+    ("top_category_mover_30d", _check_top_category_mover_30d),
+)
+
+
+async def _run_check_with_retry(name: str, fn: Any) -> list[Insight]:
+    """Run one check; if it emits only `unknown` results, retry once after a short
+    backoff. Protects against a cold-start / transient connection blip landing on
+    the very first invocation after Neon compute wakes."""
+    try:
+        result = await fn()
+    except Exception as e:  # noqa: BLE001
+        log.warning("insights.check.raised", check=name, error=str(e))
+        result = [
+            Insight(
+                id=f"insights.{name}.error",
+                severity="unknown",
+                category="ops",
+                title=f"{name} unavailable",
+                detail=str(e),
+            )
+        ]
+
+    # Retry once if every item is "unknown" (typically a PoolTimeout on cold start).
+    if result and all(i.severity == "unknown" for i in result):
+        log.info("insights.check.retry", check=name)
+        await asyncio.sleep(1.0)
+        try:
+            retry = await fn()
+            if retry and not all(i.severity == "unknown" for i in retry):
+                return retry
+        except Exception as e:  # noqa: BLE001
+            log.warning("insights.check.retry_failed", check=name, error=str(e))
+    return result
+
+
 async def compute_insights() -> list[dict[str, Any]]:
     """Run every check in parallel and return a JSON-serialisable list.
 
     Order is: highest severity first, then the rest in the declaration order
     below. Frontend can group by category if desired.
     """
-    checks = [
-        _check_sales_kpis_30d(),
-        _check_finance_health_30d(),
-        _check_inventory_now(),
-        _check_top_category_mover_30d(),
-    ]
-    results = await asyncio.gather(*checks, return_exceptions=True)
+    # 1) Prewarm the connection pool on a single request so a cold Neon compute
+    #    doesn't cause a thundering herd on the parallel fan-out below.
+    await _prewarm()
+
+    # 2) Run all checks concurrently, each with its own single retry.
+    coros = [_run_check_with_retry(name, fn) for name, fn in CHECKS]
+    results = await asyncio.gather(*coros, return_exceptions=True)
 
     flat: list[Insight] = []
     for r in results:

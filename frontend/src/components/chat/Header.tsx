@@ -7,7 +7,6 @@ import {
   Brain,
   ChevronDown,
   Database,
-  Files,
   History,
   Loader2,
   PlusCircle,
@@ -34,13 +33,11 @@ import { useConversation } from "@/store/conversation";
 import type { ConversationSummary, HealthResponse } from "@/lib/types";
 
 interface HeaderProps {
-  showDocsLink?: boolean;
   showChatLink?: boolean;
   showNewChat?: boolean;
 }
 
 export function Header({
-  showDocsLink = true,
   showChatLink = false,
   showNewChat = true,
 }: HeaderProps) {
@@ -213,14 +210,6 @@ export function Header({
             </Link>
           </Button>
 
-          {showDocsLink && (
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/docs" className="gap-1.5">
-                <Files className="size-4" />
-                <span className="hidden sm:inline">Docs</span>
-              </Link>
-            </Button>
-          )}
           {showChatLink && (
             <Button asChild variant="ghost" size="sm">
               <Link href="/" className="gap-1.5">
