@@ -7,8 +7,8 @@ Each tool exports:
 The registry lets `agent.loop` dispatch by tool name.
 
 Note: `ingest_doc` is intentionally NOT exposed to the agent — document ingest
-is a code-only operation performed via `python -m multirag.rag.pipeline ./docs`
-(or `make ingest`). This keeps the corpus curated.
+is an operator action via `POST /docs/ingest` (UI upload) or
+`python -m multirag.rag.pipeline ./docs` / `make ingest`. This keeps the corpus curated.
 """
 
 from __future__ import annotations

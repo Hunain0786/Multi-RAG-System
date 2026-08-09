@@ -119,6 +119,7 @@ export function DocsTable({ refreshKey }: DocsTableProps) {
             <TableRow className="bg-muted/40">
               <TableHead>Source</TableHead>
               <TableHead>Type</TableHead>
+              <TableHead>Tags</TableHead>
               <TableHead className="text-right">Chunks</TableHead>
               <TableHead className="text-right">Tokens</TableHead>
               <TableHead>Ingested</TableHead>
@@ -128,21 +129,21 @@ export function DocsTable({ refreshKey }: DocsTableProps) {
           <TableBody>
             {loading && docs.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
                   <Loader2 className="mx-auto size-4 animate-spin" />
                 </TableCell>
               </TableRow>
             )}
             {!loading && docs.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
                   No documents ingested yet. Upload one above.
                 </TableCell>
               </TableRow>
             )}
             {docs.map((d) => (
               <TableRow key={d.id}>
-                <TableCell className="max-w-[26rem] truncate font-mono">
+                <TableCell className="max-w-[20rem] truncate font-mono">
                   {basename(d.source_path)}
                 </TableCell>
                 <TableCell>
@@ -151,6 +152,9 @@ export function DocsTable({ refreshKey }: DocsTableProps) {
                   >
                     {d.doc_type}
                   </span>
+                </TableCell>
+                <TableCell>
+                  <TagsCell meta={d.meta} />
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {d.chunk_count}
@@ -217,4 +221,29 @@ export function DocsTable({ refreshKey }: DocsTableProps) {
 function basename(p: string): string {
   const parts = p.replace(/\\/g, "/").split("/");
   return parts[parts.length - 1] || p;
+}
+
+function TagsCell({ meta }: { meta: Record<string, unknown> }) {
+  const raw = meta?.tags;
+  const tags = Array.isArray(raw)
+    ? raw.filter((t): t is string => typeof t === "string" && t.length > 0)
+    : [];
+  if (tags.length === 0) {
+    return <span className="text-muted-foreground/50">—</span>;
+  }
+  return (
+    <div className="flex max-w-[12rem] flex-wrap gap-1">
+      {tags.slice(0, 4).map((t) => (
+        <span
+          key={t}
+          className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+        >
+          {t}
+        </span>
+      ))}
+      {tags.length > 4 && (
+        <span className="text-[10px] text-muted-foreground">+{tags.length - 4}</span>
+      )}
+    </div>
+  );
 }

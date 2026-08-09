@@ -5,6 +5,7 @@ import type {
   DocListResponse,
   DocType,
   HealthResponse,
+  IngestResponse,
   InsightsResponse,
   MemoryFactListResponse,
 } from "@/lib/types";
@@ -26,8 +27,30 @@ async function unwrap<T>(res: Response): Promise<T> {
   return (await res.json()) as T;
 }
 
+function parseErrorBody(body: string, status: number, statusText: string): Error {
+  if (!body) return new Error(`${status} ${statusText}`);
+  try {
+    const json = JSON.parse(body) as { detail?: unknown };
+    if (typeof json.detail === "string") return new Error(json.detail);
+    if (Array.isArray(json.detail)) {
+      const msgs = json.detail
+        .map((d) => {
+          if (d && typeof d === "object" && "msg" in d) {
+            return String((d as { msg: unknown }).msg);
+          }
+          return null;
+        })
+        .filter(Boolean);
+      if (msgs.length) return new Error(msgs.join("; "));
+    }
+  } catch {
+    // not JSON — fall through
+  }
+  return new Error(`${status} ${statusText}: ${body}`);
+}
+
 // ---------------------------------------------------------------------------
-// Docs (read + delete only — ingestion is CLI-only, see `make ingest`)
+// Docs (list / delete / ingest)
 // ---------------------------------------------------------------------------
 
 export async function listDocs(docType?: DocType): Promise<DocListResponse> {
@@ -39,6 +62,68 @@ export async function deleteDoc(id: string): Promise<void> {
   await unwrap<void>(
     await fetch(`/api/docs/${encodeURIComponent(id)}`, { method: "DELETE" }),
   );
+}
+
+export interface IngestDocOptions {
+  file: File;
+  docType?: DocType;
+  tags?: string[];
+  /** 0–100 while bytes are uploading; may stay at 100 during server-side ingest. */
+  onProgress?: (pct: number) => void;
+  signal?: AbortSignal;
+}
+
+/**
+ * Multipart upload with XHR so we can report upload progress. After the
+ * request body finishes, the server still embeds + upserts — UI should treat
+ * 100% as "processing" until this promise resolves.
+ */
+export function ingestDoc(opts: IngestDocOptions): Promise<IngestResponse> {
+  const { file, docType, tags, onProgress, signal } = opts;
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/docs");
+    xhr.responseType = "text";
+
+    const onAbort = () => {
+      xhr.abort();
+      reject(new DOMException("Upload aborted", "AbortError"));
+    };
+    signal?.addEventListener("abort", onAbort);
+
+    xhr.upload.onprogress = (e) => {
+      if (!e.lengthComputable || !onProgress) return;
+      onProgress(Math.min(99, Math.round((e.loaded / e.total) * 100)));
+    };
+    xhr.upload.onload = () => onProgress?.(100);
+
+    xhr.onload = () => {
+      signal?.removeEventListener("abort", onAbort);
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText) as IngestResponse);
+        } catch {
+          reject(new Error("Invalid ingest response"));
+        }
+        return;
+      }
+      reject(parseErrorBody(xhr.responseText, xhr.status, xhr.statusText));
+    };
+    xhr.onerror = () => {
+      signal?.removeEventListener("abort", onAbort);
+      reject(new Error("Network error during upload"));
+    };
+    xhr.onabort = () => {
+      signal?.removeEventListener("abort", onAbort);
+      reject(new DOMException("Upload aborted", "AbortError"));
+    };
+
+    const form = new FormData();
+    form.append("file", file, file.name);
+    if (docType) form.append("doc_type", docType);
+    if (tags && tags.length > 0) form.append("tags", tags.join(","));
+    xhr.send(form);
+  });
 }
 
 // ---------------------------------------------------------------------------

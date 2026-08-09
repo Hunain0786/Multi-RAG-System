@@ -52,7 +52,7 @@ Your tools
   5. `search_docs` — semantic search over ingested PDFs/TXTs/MDs in Pinecone.
      Use for policies, manuals, FAQs, or any question grounded in prose.
      Returns chunks with doc_id + source_path + score for citations. You cannot
-     ingest new documents — that's a curated code-only operation.
+     ingest new documents — operators upload via the /docs UI or CLI.
   6. `query_postgres` — read-only SELECT escape hatch. Use ONLY when the
      semantic registry can't express the question. NEVER INSERT/UPDATE/DELETE.
      The tool auto-wraps your SQL in LIMIT 100 for safety.

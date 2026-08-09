@@ -1,0 +1,43 @@
+MULTI-RAG DEMO — CUSTOMER SUPPORT POLICY
+========================================
+
+Last updated: 2026-08-10
+Document type: policy
+Tags: returns, shipping, support
+
+1. Return window
+----------------
+Customers may return unused items within 30 days of delivery.
+Items must be in original packaging with tags attached.
+Final-sale and personalized items cannot be returned.
+
+2. Refunds
+----------
+Refunds are issued to the original payment method within 5–7 business days
+after the warehouse receives and inspects the return.
+Store credit is available immediately once the return is approved.
+
+3. Exchanges
+------------
+Size or color exchanges are free for orders shipped within the contiguous US.
+International exchanges are not supported; please return and reorder instead.
+
+4. Shipping
+-----------
+Standard shipping: 3–5 business days.
+Express shipping: 1–2 business days.
+Orders placed after 2:00 PM local warehouse time ship the next business day.
+
+5. Damaged or missing items
+---------------------------
+Report damage or missing items within 48 hours of delivery.
+Email support@example.com with the order ID and photos of the package/item.
+We will ship a replacement at no cost or issue a full refund.
+
+6. Contact
+----------
+Support hours: Monday–Friday, 9:00 AM – 6:00 PM EST.
+Chat is available in the app; email responses usually arrive within 1 business day.
+
+This file is intentionally plain text so you can verify UI upload → chunking →
+Pinecone indexing → search_docs retrieval in the multi-rag demo.

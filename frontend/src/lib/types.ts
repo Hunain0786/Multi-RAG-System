@@ -189,7 +189,7 @@ export interface AssistantChatMessage {
 export type ChatMessage = UserChatMessage | AssistantChatMessage;
 
 /** ------------------------------------------------------------------
- * Docs API (read-only from the frontend; ingest is CLI-only now).
+ * Docs API — list / delete / ingest (multipart upload via /api/docs).
  * ------------------------------------------------------------------ */
 
 export interface DocSummary {
@@ -206,6 +206,14 @@ export interface DocSummary {
 export interface DocListResponse {
   docs: DocSummary[];
   total: number;
+}
+
+export interface IngestResponse {
+  doc_id: string;
+  chunks_added: number;
+  tokens: number;
+  reused: boolean;
+  source_path: string;
 }
 
 export interface HealthResponse {

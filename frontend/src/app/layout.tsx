@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Syne } from "next/font/google";
 
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,10 +16,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const syne = Syne({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+});
+
 export const metadata: Metadata = {
   title: "multi-rag",
   description:
-    "Multi-source RAG agent — SQL semantic layer, Pinecone document search, Anthropic tool_use.",
+    "Multi-source RAG agent — governed SQL metrics, Pinecone document search, and durable memory in one Anthropic tool_use loop.",
 };
 
 export default function RootLayout({
@@ -30,7 +36,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${syne.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="h-full bg-background text-foreground">

@@ -7,6 +7,7 @@ import {
   Brain,
   ChevronDown,
   Database,
+  FileText,
   History,
   Loader2,
   PlusCircle,
@@ -197,6 +198,19 @@ export function Header({
           </DropdownMenu>
 
           <Button asChild variant="ghost" size="sm">
+            <Link href="/chat" className="gap-1.5">
+              Chat
+            </Link>
+          </Button>
+
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/docs" className="gap-1.5">
+              <FileText className="size-4" />
+              <span className="hidden sm:inline">Docs</span>
+            </Link>
+          </Button>
+
+          <Button asChild variant="ghost" size="sm">
             <Link href="/live-updates" className="gap-1.5">
               <Activity className="size-4" />
               <span className="hidden sm:inline">Live Updates</span>
@@ -211,9 +225,9 @@ export function Header({
           </Button>
 
           {showChatLink && (
-            <Button asChild variant="ghost" size="sm">
+            <Button asChild variant="outline" size="sm">
               <Link href="/" className="gap-1.5">
-                Chat
+                Home
               </Link>
             </Button>
           )}

@@ -1,11 +1,14 @@
 "use client";
 
-import { Terminal } from "lucide-react";
+import { useState } from "react";
 
 import { Header } from "@/components/chat/Header";
+import { DocUpload } from "@/components/docs/DocUpload";
 import { DocsTable } from "@/components/docs/DocsTable";
 
 export default function DocsPage() {
+  const [refreshKey, setRefreshKey] = useState(0);
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header showChatLink showNewChat={false} />
@@ -13,33 +16,20 @@ export default function DocsPage() {
         <section className="space-y-2">
           <h1 className="text-xl font-semibold tracking-tight">Documents</h1>
           <p className="text-sm text-muted-foreground">
-            Library of documents currently indexed in Pinecone. The agent&apos;s{" "}
+            Upload policies, manuals, and FAQs. The agent&apos;s{" "}
             <code className="font-mono">search_docs</code> tool retrieves chunks
-            from here.
+            from this library.
           </p>
         </section>
 
-        <section className="flex items-start gap-3 rounded-md border border-dashed bg-muted/20 p-4 text-sm">
-          <div className="mt-0.5 rounded-full bg-muted p-1.5 text-muted-foreground">
-            <Terminal className="size-4" />
-          </div>
-          <div className="space-y-1.5">
-            <div className="font-medium">Ingestion is code-only</div>
-            <p className="text-muted-foreground">
-              To keep the corpus curated, uploading through the UI is disabled.
-              Add files to <code className="font-mono">backend/docs/</code> and
-              run one of:
-            </p>
-            <pre className="mt-1 overflow-x-auto rounded bg-background px-3 py-2 font-mono text-[12px] leading-5">
-{`make ingest                                        # ingest every file under backend/docs
-python -m multirag.rag.pipeline path/to/file.pdf   # ingest a single file`}
-            </pre>
-          </div>
+        <section className="space-y-3">
+          <h2 className="text-sm font-medium">Upload</h2>
+          <DocUpload onIngested={() => setRefreshKey((k) => k + 1)} />
         </section>
 
         <section>
           <h2 className="mb-3 text-sm font-medium">Library</h2>
-          <DocsTable refreshKey={0} />
+          <DocsTable refreshKey={refreshKey} />
         </section>
       </main>
     </div>
