@@ -7,7 +7,7 @@ Each tool exports:
 The registry lets `agent.loop` dispatch by tool name.
 
 Note: `ingest_doc` is intentionally NOT exposed to the agent — document ingest
-is an operator action via `POST /docs/ingest` (UI upload) or
+is an operator action via `POST /documents/ingest` (UI upload) or
 `python -m multirag.rag.pipeline ./docs` / `make ingest`. This keeps the corpus curated.
 """
 

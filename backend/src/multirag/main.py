@@ -48,14 +48,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
-    # Keep Swagger off /docs — that path is the document-library API.
+    # Swagger stays at /docs (FastAPI default). Document library API is /documents.
     app = FastAPI(
         title="multi-rag",
         version="0.1.0",
         description="Multi-source RAG: SQL semantic layer + Pinecone doc search + Anthropic tool_use.",
         lifespan=lifespan,
-        docs_url="/api-docs",
-        redoc_url="/redoc",
     )
 
     app.add_middleware(

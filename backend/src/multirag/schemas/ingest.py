@@ -1,4 +1,4 @@
-"""Pydantic models for the /docs endpoints."""
+"""Pydantic models for the /documents endpoints."""
 
 from __future__ import annotations
 

@@ -4,27 +4,46 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/docs?doc_type=... -> FastAPI GET /docs
- * POST /api/docs             -> FastAPI POST /docs/ingest (multipart)
+ * GET /api/docs?doc_type=... -> FastAPI GET /documents
+ * POST /api/docs             -> FastAPI POST /documents/ingest (multipart)
  *
- * The agent still cannot ingest documents (`ingest_doc` is not registered);
- * this endpoint is for operators via the /docs UI.
+ * Upstream path is `/documents` (not `/docs`) so FastAPI Swagger UI cannot
+ * shadow the library API.
  */
+function passthrough(upstream: Response, body: string): Response {
+  const contentType =
+    upstream.headers.get("content-type") ?? "application/json";
+  // Guard: if the backend ever returns HTML (e.g. wrong path → Swagger),
+  // surface a clear JSON error instead of breaking the client JSON parse.
+  if (
+    contentType.includes("text/html") ||
+    body.trimStart().toLowerCase().startsWith("<!doctype") ||
+    body.trimStart().toLowerCase().startsWith("<html")
+  ) {
+    return Response.json(
+      {
+        detail:
+          "Backend returned HTML instead of JSON for the documents API. " +
+          "Expected /documents — check BACKEND_URL and that the backend is up to date.",
+      },
+      { status: 502 },
+    );
+  }
+  return new Response(body, {
+    status: upstream.status,
+    headers: { "content-type": contentType },
+  });
+}
+
 export async function GET(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const qs = url.search; // preserves ?doc_type=... verbatim
-  const upstream = await fetch(`${env.BACKEND_URL}/docs${qs}`, {
+  const upstream = await fetch(`${env.BACKEND_URL}/documents${qs}`, {
     method: "GET",
     cache: "no-store",
   });
   const body = await upstream.text();
-  return new Response(body, {
-    status: upstream.status,
-    headers: {
-      "content-type":
-        upstream.headers.get("content-type") ?? "application/json",
-    },
-  });
+  return passthrough(upstream, body);
 }
 
 export async function POST(req: Request): Promise<Response> {
@@ -47,17 +66,11 @@ export async function POST(req: Request): Promise<Response> {
     outgoing.append(key, blob, name);
   }
 
-  const upstream = await fetch(`${env.BACKEND_URL}/docs/ingest`, {
+  const upstream = await fetch(`${env.BACKEND_URL}/documents/ingest`, {
     method: "POST",
     body: outgoing,
     cache: "no-store",
   });
   const body = await upstream.text();
-  return new Response(body, {
-    status: upstream.status,
-    headers: {
-      "content-type":
-        upstream.headers.get("content-type") ?? "application/json",
-    },
-  });
+  return passthrough(upstream, body);
 }

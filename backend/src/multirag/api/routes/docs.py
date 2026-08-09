@@ -1,8 +1,10 @@
-"""/docs — upload / list / delete ingested documents.
+"""/documents — upload / list / delete ingested documents.
 
-Upload via POST /docs/ingest (multipart). The agent still cannot ingest —
-`ingest_doc` is not registered as a tool — so the corpus stays operator-curated.
-CLI ingest (`make ingest`) remains supported for bulk / sample corpora.
+Upload via POST /documents/ingest (multipart). Prefix is intentionally NOT
+`/docs` — FastAPI reserves `/docs` for Swagger UI by default.
+
+The agent still cannot ingest (`ingest_doc` is not registered). CLI ingest
+(`make ingest`) remains supported for bulk / sample corpora.
 """
 
 from __future__ import annotations
@@ -22,7 +24,7 @@ from multirag.rag.loaders import SUPPORTED_EXTS
 from multirag.rag.pipeline import delete_doc, ingest_file
 from multirag.schemas.ingest import DocListResponse, DocSummary, DocType, IngestResponse
 
-router = APIRouter(prefix="/docs", tags=["docs"])
+router = APIRouter(prefix="/documents", tags=["documents"])
 log = get_logger(__name__)
 
 _SAFE_STEM = re.compile(r"[^A-Za-z0-9._-]+")

@@ -19,12 +19,29 @@ import type {
 async function unwrap<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const body = await res.text().catch(() => "");
+    if (body.trimStart().toLowerCase().startsWith("<!doctype")) {
+      throw new Error(
+        "API returned HTML instead of JSON — check that the backend documents route is reachable.",
+      );
+    }
+    try {
+      const json = JSON.parse(body) as { detail?: unknown };
+      if (typeof json.detail === "string") throw new Error(json.detail);
+    } catch (e) {
+      if (e instanceof Error && e.message && !e.message.startsWith("{")) throw e;
+    }
     throw new Error(
       body ? `${res.status} ${res.statusText}: ${body}` : `${res.status} ${res.statusText}`,
     );
   }
   if (res.status === 204) return undefined as T;
-  return (await res.json()) as T;
+  const text = await res.text();
+  if (text.trimStart().toLowerCase().startsWith("<!doctype")) {
+    throw new Error(
+      "API returned HTML instead of JSON — check that the backend documents route is reachable.",
+    );
+  }
+  return JSON.parse(text) as T;
 }
 
 function parseErrorBody(body: string, status: number, statusText: string): Error {
