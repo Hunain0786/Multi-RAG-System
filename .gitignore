@@ -18,6 +18,9 @@ build/
 backend/.env
 frontend/.env.local
 frontend/.env*.local
+# Real Lambda env with secrets lives only in the AWS console / a local untracked
+# copy. The tracked lambda-env.json is a template with blanked-out values.
+backend/lambda-env.local.json
 
 # --- Node ---------------------------------------------------------------------
 node_modules/
