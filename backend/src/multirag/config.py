@@ -27,21 +27,25 @@ class Settings(BaseSettings):
     anthropic_temperature: float = 0.0
 
     # ------- Embeddings -------
-    # `openai`                : hosted API, needs OPENAI_API_KEY.  (default)
+    # `openai`                : hosted API, needs OPENAI_API_KEY.
     # `voyage`                : hosted API, needs VOYAGE_API_KEY.
+    # `openrouter`            : hosted API, needs OPENROUTER_API_KEY. Any embedding
+    #                           model OpenRouter proxies; set EMBED_MODEL to its slug.
     # `sentence_transformers` : local HuggingFace model.  Requires the `local`
     #                           extra (`pip install -e ".[local]"`) which pulls torch.
-    embed_provider: Literal["openai", "voyage", "sentence_transformers"] = "openai"
-    embed_model: str = "text-embedding-3-large"
+    embed_provider: Literal["openai", "voyage", "openrouter", "sentence_transformers"] = "openrouter"
+    embed_model: str = "liquid/lfm-2.5-embedding-350m:free"
     embed_dimensions: int = 1024
     # Only used by the sentence-transformers path. BGE-family models expect a
     # query prefix but no document prefix; e5-family expects both. Ignored by
-    # OpenAI / Voyage (those handle task-type internally).
+    # OpenAI / Voyage / OpenRouter (those handle task-type internally).
     embed_query_prefix: str = "Represent this sentence for searching relevant passages: "
     embed_doc_prefix: str = ""
     # Only needed for their respective providers.
     openai_api_key: str = ""
     voyage_api_key: str = ""
+    openrouter_api_key: str = ""
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
 
     # ------- Pinecone -------
     pinecone_api_key: str = ""

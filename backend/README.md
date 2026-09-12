@@ -21,12 +21,13 @@ safe parameterised SQL — the model never writes SQL.
 - Docker + Docker Compose (for local Postgres)
 - Node.js 18+ (only for `npx prisma db push` — the runtime uses `psycopg`)
 - A Pinecone account (Serverless free tier is enough) and an API key.
-- An Anthropic API key.
-- An OpenAI API key (used for the embedding model,
-  `text-embedding-3-large` @ 1024 dim). If you'd rather run embeddings locally
-  install the optional extra: `pip install -e ".[local]"` and set
-  `EMBED_PROVIDER=sentence_transformers` in `.env` (downloads
-  `BAAI/bge-large-en-v1.5`, ~1.3 GB, no API key needed after that).
+- An Anthropic API key (the chat / tool_use model).
+- An embedding provider key. Default is **OpenRouter** (`EMBED_PROVIDER=openrouter`)
+  with the free `liquid/lfm-2.5-embedding-350m:free` model @ 1024 dim — needs
+  `OPENROUTER_API_KEY`. Alternatives: `openai` (`text-embedding-3-large`,
+  `OPENAI_API_KEY`), `voyage` (`VOYAGE_API_KEY`), or run embeddings locally with
+  `pip install -e ".[local]"` + `EMBED_PROVIDER=sentence_transformers`
+  (downloads `BAAI/bge-large-en-v1.5`, ~1.3 GB, no API key after that).
 
 ## First-time setup
 

@@ -1,10 +1,12 @@
 """Embedding client.
 
-Three providers, one interface:
+Four providers, one interface:
 
   - `sentence_transformers` : local HuggingFace model (default; free, no API key).
   - `openai`                : hosted API, `text-embedding-3-*`.
   - `voyage`                : hosted API, Voyage AI.
+  - `openrouter`            : hosted API, any embedding model OpenRouter proxies
+                              (OpenAI-compatible endpoint).
 
 The protocol exposes separate `embed_documents` and `embed_query` calls because
 some open-source retrieval models (BGE, E5) want a task-specific prefix on the
@@ -176,6 +178,55 @@ class VoyageEmbedder:
 
 
 # ---------------------------------------------------------------------------
+# OpenRouter
+# ---------------------------------------------------------------------------
+
+class OpenRouterEmbedder:
+    """Hosted embeddings via OpenRouter's OpenAI-compatible `/embeddings`.
+
+    Uses the OpenAI SDK against a custom base_url, so any embedding model
+    OpenRouter proxies works by setting EMBED_MODEL. Free-tier models (e.g.
+    `liquid/lfm-2.5-embedding-350m:free`) need no OpenAI key. Note: some models
+    reject a `dimensions` argument, so it's only sent when the model supports
+    truncation — set EMBED_DIMENSIONS to the model's native output.
+    """
+
+    def __init__(self) -> None:
+        from openai import OpenAI
+
+        settings = get_settings()
+        if not settings.openrouter_api_key:
+            raise RuntimeError("OPENROUTER_API_KEY is not set")
+        self._client = OpenAI(
+            api_key=settings.openrouter_api_key,
+            base_url=settings.openrouter_base_url,
+        )
+        self._model_name = settings.embed_model
+        self._dim = settings.embed_dimensions
+
+    @property
+    def dimensions(self) -> int:
+        return self._dim
+
+    @property
+    def model(self) -> str:
+        return self._model_name
+
+    def _call(self, batch: list[str]) -> list[list[float]]:
+        resp = self._client.embeddings.create(model=self._model_name, input=batch)
+        return [e.embedding for e in resp.data]
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        out: list[list[float]] = []
+        for batch in _batches(texts, BATCH_SIZE):
+            out.extend(self._call(batch))
+        return out
+
+    def embed_query(self, text: str) -> list[float]:
+        return self._call([text])[0]
+
+
+# ---------------------------------------------------------------------------
 # Factory
 # ---------------------------------------------------------------------------
 
@@ -198,6 +249,8 @@ def get_embedder() -> EmbeddingClient:
         _embedder = OpenAIEmbedder()
     elif settings.embed_provider == "voyage":
         _embedder = VoyageEmbedder()
+    elif settings.embed_provider == "openrouter":
+        _embedder = OpenRouterEmbedder()
     else:
         raise ValueError(f"unknown embed_provider '{settings.embed_provider}'")
     log.info(
