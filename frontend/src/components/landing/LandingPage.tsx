@@ -31,7 +31,7 @@ const FEATURES = [
   {
     icon: Workflow,
     title: "Tool-use agent loop",
-    body: "Anthropic tool_use streams SQL tables, charts, and doc hits in one answer — with live progress you can audit.",
+    body: "OpenAI tool calling streams SQL tables, charts, and doc hits in one answer — with live progress you can audit.",
   },
 ] as const;
 
@@ -202,7 +202,7 @@ export function LandingPage() {
           <span className="font-[family-name:var(--font-display)] font-medium text-foreground/80">
             multi-rag
           </span>
-          <span>SQL · Pinecone · Anthropic tool_use</span>
+          <span>SQL · Pinecone · OpenAI tool calling</span>
         </div>
       </footer>
     </div>

@@ -1,7 +1,8 @@
-"""Agent tools registry — Anthropic tool schemas + async invokers.
+"""Agent tools registry — provider-neutral tool schemas + async invokers.
 
 Each tool exports:
-  - `TOOL_SCHEMA`  : dict passed to Anthropic Messages `tools=[...]`
+  - `TOOL_SCHEMA`  : {name, description, input_schema} — `agent.openai_compat`
+                     wraps these into OpenAI function-tool definitions
   - `run(input_)`  : async callable returning a JSON-serialisable result
 
 The registry lets `agent.loop` dispatch by tool name.

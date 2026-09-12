@@ -52,7 +52,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="multi-rag",
         version="0.1.0",
-        description="Multi-source RAG: SQL semantic layer + Pinecone doc search + Anthropic tool_use.",
+        description="Multi-source RAG: SQL semantic layer + Pinecone doc search + OpenAI tool calling.",
         lifespan=lifespan,
     )
 

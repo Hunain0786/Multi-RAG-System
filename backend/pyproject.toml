@@ -1,7 +1,7 @@
 [project]
 name = "multirag"
 version = "0.1.0"
-description = "Multi-source RAG service: pgvector-free Postgres SQL semantic layer + Pinecone doc search + Anthropic tool-use loop, served over FastAPI."
+description = "Multi-source RAG service: pgvector-free Postgres SQL semantic layer + Pinecone doc search + OpenAI tool-calling loop, served over FastAPI."
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "multi-rag" }]
@@ -16,7 +16,6 @@ dependencies = [
     "python-multipart>=0.0.19",
     "sse-starlette>=2.1",
     "psycopg[binary,pool]>=3.2",
-    "anthropic>=0.39",
     "openai>=1.54",
     "pinecone>=5.3",
     "pypdf>=5.1",

@@ -20,11 +20,12 @@ class Settings(BaseSettings):
     # ------- Postgres -------
     database_url: str = "postgresql://multirag:multirag@localhost:5432/multirag"
 
-    # ------- Anthropic -------
-    anthropic_api_key: str = ""
-    anthropic_model: str = "claude-sonnet-4-5-20250929"
-    anthropic_max_tokens: int = 4096
-    anthropic_temperature: float = 0.0
+    # ------- OpenAI (chat + tool calling) -------
+    # `openai_api_key` lives in the Embeddings block below — the same key backs
+    # both the chat model and the `openai` embedding provider.
+    openai_model: str = "gpt-4.1"
+    openai_max_tokens: int = 4096
+    openai_temperature: float = 0.0
 
     # ------- Embeddings -------
     # `openai`                : hosted API, needs OPENAI_API_KEY.  (default)
@@ -39,8 +40,9 @@ class Settings(BaseSettings):
     # OpenAI / Voyage (those handle task-type internally).
     embed_query_prefix: str = "Represent this sentence for searching relevant passages: "
     embed_doc_prefix: str = ""
-    # Only needed for their respective providers.
+    # Required for the chat model, and for the `openai` embedding provider.
     openai_api_key: str = ""
+    # Only needed by the `voyage` embedding provider.
     voyage_api_key: str = ""
 
     # ------- Pinecone -------
@@ -61,7 +63,7 @@ class Settings(BaseSettings):
     # column exists in Postgres so multi-tenant is a config change, not a
     # migration. Change to a per-request value once auth is wired.
     memory_user_id: str = "local"
-    # When True, after each chat turn we fire-and-forget an Anthropic call to
+    # When True, after each chat turn we fire-and-forget an OpenAI call to
     # fold the older messages into a rolling summary. Off by default to keep
     # dev API costs predictable.
     memory_auto_summarize: bool = False

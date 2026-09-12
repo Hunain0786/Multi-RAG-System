@@ -4,7 +4,7 @@ Design:
 - Ids are generated in Python via `secrets.token_hex(12)` to match the rest of
   the app (Prisma uses cuid() client-side, we don't want to depend on the Prisma
   runtime from Python — psycopg is the reader).
-- `Message.content` is always a list of Anthropic content blocks:
+- `Message.content` is always a list of content blocks:
     text        : {"type": "text", "text": ...}
     tool_use    : {"type": "tool_use", "id": ..., "name": ..., "input": {...}}
     tool_result : {"type": "tool_result", "tool_use_id": ..., "content": ..., "is_error": ...}

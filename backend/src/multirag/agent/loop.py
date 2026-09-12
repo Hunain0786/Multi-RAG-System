@@ -1,8 +1,12 @@
-"""Anthropic Messages API multi-turn tool_use loop with durable memory.
+"""OpenAI Chat Completions multi-turn tool-calling loop with durable memory.
 
-Yields structured events (dict) instead of streaming raw Anthropic events so the
-FastAPI SSE endpoint can render them consistently. Parallel tool_use blocks in
-a single turn are executed concurrently.
+Yields structured events (dict) instead of streaming raw provider events so the
+FastAPI SSE endpoint can render them consistently. Parallel tool calls in a
+single turn are executed concurrently.
+
+Messages are stored and emitted as content blocks (text / tool_use /
+tool_result); `agent.openai_compat` translates to and from the Chat Completions
+shape at the API boundary.
 
 Memory contract:
 - If `conversation_id` is None, we create one and yield `{type:"conversation", id}`
@@ -22,9 +26,14 @@ import json
 import textwrap
 from typing import Any, AsyncIterator
 
-from anthropic import Anthropic
+from openai import OpenAI
 
 from multirag.agent.context import reset_conversation_id, set_conversation_id
+from multirag.agent.openai_compat import (
+    from_openai_message,
+    to_openai_messages,
+    to_openai_tools,
+)
 from multirag.agent.prompts.system import SYSTEM_PROMPT
 from multirag.agent.tools import TOOL_RUNNERS, TOOL_SCHEMAS
 from multirag.config import get_settings
@@ -37,6 +46,8 @@ log = get_logger(__name__)
 
 MAX_STEPS = 10
 TITLE_MAX_LEN = 60
+
+OPENAI_TOOLS = to_openai_tools(TOOL_SCHEMAS)
 
 
 class ChatMessage(dict):
@@ -93,8 +104,8 @@ async def run_agent(
     items are ignored; DB history is authoritative.
     """
     settings = get_settings()
-    if not settings.anthropic_api_key:
-        yield {"type": "error", "message": "ANTHROPIC_API_KEY is not set"}
+    if not settings.openai_api_key:
+        yield {"type": "error", "message": "OPENAI_API_KEY is not set"}
         return
 
     if not messages or messages[-1].get("role") != "user":
@@ -140,8 +151,8 @@ async def run_agent(
         content=new_user_content,
     )
 
-    # Rebuild history for Anthropic. `get_messages` returns everything up to
-    # and including the freshly-persisted user turn.
+    # Rebuild history. `get_messages` returns everything up to and including
+    # the freshly-persisted user turn.
     history_rows = await memory_store.get_messages(conversation_id)
     history: list[dict[str, Any]] = [
         {"role": r.role, "content": r.content} for r in history_rows
@@ -158,42 +169,29 @@ async def run_agent(
     )
     system_prompt = SYSTEM_PROMPT if not memory_ctx else f"{SYSTEM_PROMPT}\n\n{memory_ctx}"
 
-    client = Anthropic(api_key=settings.anthropic_api_key)
+    client = OpenAI(api_key=settings.openai_api_key)
     ctx_token = set_conversation_id(conversation_id)
     try:
         for step in range(MAX_STEPS):
             response = await asyncio.to_thread(
-                client.messages.create,
-                model=settings.anthropic_model,
-                max_tokens=settings.anthropic_max_tokens,
-                temperature=settings.anthropic_temperature,
-                system=system_prompt,
-                tools=TOOL_SCHEMAS,
-                messages=history,
+                client.chat.completions.create,
+                model=settings.openai_model,
+                max_completion_tokens=settings.openai_max_tokens,
+                temperature=settings.openai_temperature,
+                tools=OPENAI_TOOLS,
+                messages=to_openai_messages(system_prompt, history),
             )
 
-            assistant_content: list[dict[str, Any]] = []
+            choice = response.choices[0]
+            assistant_content = from_openai_message(choice.message)
             tool_uses: list[dict[str, Any]] = []
 
-            for block in response.content:
-                if block.type == "text":
-                    assistant_content.append({"type": "text", "text": block.text})
-                    yield {"type": "text", "text": block.text}
-                elif block.type == "tool_use":
-                    tu = {
-                        "type": "tool_use",
-                        "id": block.id,
-                        "name": block.name,
-                        "input": block.input,
-                    }
-                    assistant_content.append(tu)
-                    tool_uses.append(tu)
-                    yield {
-                        "type": "tool_use",
-                        "id": block.id,
-                        "name": block.name,
-                        "input": block.input,
-                    }
+            for block in assistant_content:
+                if block["type"] == "text":
+                    yield {"type": "text", "text": block["text"]}
+                else:
+                    tool_uses.append(block)
+                    yield dict(block)
 
             history.append({"role": "assistant", "content": assistant_content})
             await memory_store.append_message(
@@ -202,8 +200,8 @@ async def run_agent(
                 content=assistant_content,
             )
 
-            if response.stop_reason != "tool_use" or not tool_uses:
-                yield {"type": "stop", "reason": response.stop_reason, "step": step}
+            if choice.finish_reason != "tool_calls" or not tool_uses:
+                yield {"type": "stop", "reason": choice.finish_reason, "step": step}
                 # Fire-and-forget rolling summary (no-op when disabled).
                 asyncio.create_task(maybe_summarize(conversation_id))
                 return

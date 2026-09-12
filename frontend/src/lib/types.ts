@@ -246,7 +246,7 @@ export interface ConversationListResponse {
   total: number;
 }
 
-/** A message row as it lives in Postgres — content is a list of Anthropic blocks. */
+/** A message row as it lives in Postgres — content is a list of content blocks. */
 export interface PersistedMessage {
   id: string;
   seq: number;

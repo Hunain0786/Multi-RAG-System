@@ -2,12 +2,12 @@
 
 A multi-source Retrieval-Augmented Generation system: a **FastAPI** backend that
 answers questions across a Postgres semantic layer and a Pinecone document
-index using an Anthropic tool-use loop, plus a **Next.js** frontend with a
+index using an OpenAI tool-calling loop, plus a **Next.js** frontend with a
 streaming chat UI and a document library.
 
 ```
 multi-rag/
-├── backend/       Python 3.11 + FastAPI + Postgres + Pinecone + Anthropic
+├── backend/       Python 3.11 + FastAPI + Postgres + Pinecone + OpenAI
 ├── frontend/      Next.js 15 (App Router) + TypeScript + Tailwind + shadcn/ui
 ├── Makefile       Top-level orchestration (delegates to each app)
 └── README.md      You are here
@@ -19,11 +19,11 @@ multi-rag/
 flowchart LR
     Browser -->|"POST /api/chat"| NextApi[Next.js /api/chat]
     NextApi -->|"POST /chat SSE"| FastAPI
-    FastAPI -->|"tool_use loop"| Anthropic
+    FastAPI -->|"tool-calling loop"| OpenAIChat[OpenAI chat]
     FastAPI -->|"compile_metric / query_postgres"| Postgres[(Postgres)]
     FastAPI -->|"search_docs"| Pinecone[(Pinecone)]
-    FastAPI -->|"embeddings"| OpenAI[OpenAI embeddings]
-    Anthropic -->|"tool calls"| FastAPI
+    FastAPI -->|"embeddings"| OpenAIEmbed[OpenAI embeddings]
+    OpenAIChat -->|"tool calls"| FastAPI
 ```
 
 Three knowledge layers:
@@ -44,7 +44,7 @@ document search results as citation cards.
 ```bash
 # 1. One-time backend setup (Postgres + Prisma schema + seed data + Pinecone index).
 make install
-cp backend/.env.example backend/.env   # fill in ANTHROPIC/OPENAI/PINECONE keys
+cp backend/.env.example backend/.env   # fill in OPENAI/PINECONE keys
 make up
 make ingest
 

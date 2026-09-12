@@ -1,6 +1,6 @@
 """Per-request context accessible to tools (via contextvars).
 
-The Anthropic tool_use runner in `agent.loop` invokes a tool as `runner(input)`
+The tool runner in `agent.loop` invokes a tool as `runner(input)`
 with no side channel. Tools that need to know which conversation they belong to
 (e.g. `remember` stamping `source_conversation_id`) pull it from here.
 

@@ -25,7 +25,7 @@ const syne = Syne({
 export const metadata: Metadata = {
   title: "multi-rag",
   description:
-    "Multi-source RAG agent — governed SQL metrics, Pinecone document search, and durable memory in one Anthropic tool_use loop.",
+    "Multi-source RAG agent — governed SQL metrics, Pinecone document search, and durable memory in one OpenAI tool-calling loop.",
 };
 
 export default function RootLayout({

@@ -1,7 +1,7 @@
 # multi-rag
 
 A FastAPI service that answers questions across **three knowledge layers** with a
-single Anthropic tool-use loop:
+single OpenAI tool-calling loop:
 
 | Layer            | Backend                              | How the agent uses it                                    |
 | ---------------- | ------------------------------------ | -------------------------------------------------------- |
@@ -21,9 +21,9 @@ safe parameterised SQL — the model never writes SQL.
 - Docker + Docker Compose (for local Postgres)
 - Node.js 18+ (only for `npx prisma db push` — the runtime uses `psycopg`)
 - A Pinecone account (Serverless free tier is enough) and an API key.
-- An Anthropic API key.
-- An OpenAI API key (used for the embedding model,
-  `text-embedding-3-large` @ 1024 dim). If you'd rather run embeddings locally
+- An OpenAI API key. The same key backs the chat model (`OPENAI_MODEL`,
+  default `gpt-4.1`) and the embedding model
+  `text-embedding-3-large` @ 1024 dim. If you'd rather run embeddings locally
   install the optional extra: `pip install -e ".[local]"` and set
   `EMBED_PROVIDER=sentence_transformers` in `.env` (downloads
   `BAAI/bge-large-en-v1.5`, ~1.3 GB, no API key needed after that).
@@ -32,7 +32,7 @@ safe parameterised SQL — the model never writes SQL.
 
 ```bash
 cp .env.example .env
-# Fill in ANTHROPIC_API_KEY, OPENAI_API_KEY, PINECONE_API_KEY.
+# Fill in OPENAI_API_KEY, PINECONE_API_KEY.
 
 make install       # pip install -e .[dev]
 make up            # docker compose up postgres + prisma db push + seed + pinecone-init
@@ -110,8 +110,8 @@ aws lambda update-function-code \
 
 ### Lambda environment variables
 
-Configure the same env vars you use locally (`DATABASE_URL`, `ANTHROPIC_API_KEY`,
-`OPENAI_API_KEY`, `PINECONE_API_KEY`, `PINECONE_INDEX`, etc.) in the Lambda
+Configure the same env vars you use locally (`DATABASE_URL`, `OPENAI_API_KEY`,
+`OPENAI_MODEL`, `PINECONE_API_KEY`, `PINECONE_INDEX`, etc.) in the Lambda
 function configuration.
 
 Notes:
@@ -131,7 +131,8 @@ src/multirag/
   main.py                       FastAPI app factory + lifespan
   config.py                     pydantic-settings (.env)
   api/                          FastAPI routes (/chat SSE, /docs, /health)
-  agent/                        Anthropic tool_use loop + system prompt + tools
+  agent/                        OpenAI tool-calling loop + system prompt + tools
+    openai_compat.py            content blocks <-> Chat Completions translation
   semantic/                     MetricDef / DimensionDef / DomainDef + compile.py
     registry/{sales,inventory,hr,finance}.py
   rag/                          chunking, loaders, embedder, Pinecone store, pipeline
@@ -215,5 +216,7 @@ tests against a live compose stack are left as a next step.
   must match the Pinecone index — recreate the index (`make pinecone-init`
   after deleting via the Pinecone console) if you change the dim. The BGE model
   is 1024-dim by default so the shipped Pinecone config works out of the box.
-- **Phase 2 (live APIs).** Add an `apis/` module + register a new Anthropic tool
-  schema in `agent/tools/__init__.py`.
+- **Swap the chat model.** Set `OPENAI_MODEL` in `.env` to any tool-calling
+  OpenAI chat model.
+- **Phase 2 (live APIs).** Add an `apis/` module + register a new tool schema in
+  `agent/tools/__init__.py`.

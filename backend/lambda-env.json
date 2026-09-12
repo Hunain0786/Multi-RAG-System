@@ -2,12 +2,11 @@
     "Variables":  {
                       "VOYAGE_API_KEY":  "",
                       "PINECONE_CLOUD":  "aws",
-                      "ANTHROPIC_API_KEY":  "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",
                       "PINECONE_INDEX":  "multi-rag-prod",
                       "EMBED_MODEL":  "text-embedding-3-large",
                       "MEMORY_USER_ID":  "local",
                       "EMBED_DIMENSIONS":  "1024",
-                      "ANTHROPIC_MODEL":  "claude-sonnet-4-5-20250929",
+                      "OPENAI_MODEL":  "gpt-4.1",
                       "EMBED_PROVIDER":  "openai",
                       "LOG_LEVEL":  "INFO",
                       "APP_ENV":  "prod",

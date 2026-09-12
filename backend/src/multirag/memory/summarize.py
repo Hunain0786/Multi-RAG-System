@@ -6,8 +6,8 @@ call a *cheap* LLM prompt to fold the older messages into a single summary and
 persist it as a `MemoryEpisode`. The next recall pulls that summary instead of
 re-sending every early message.
 
-Cost note: uses the same Anthropic model as the main agent but with
-significantly lower max_tokens and no tools.
+Cost note: uses the same OpenAI model as the main agent but with significantly
+lower max_tokens and no tools.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ import asyncio
 import json
 from typing import Any
 
-from anthropic import Anthropic
+from openai import OpenAI
 
 from multirag.config import get_settings
 from multirag.logging import get_logger
@@ -33,12 +33,12 @@ async def maybe_summarize(conversation_id: str) -> None:
     """Fire-and-forget entrypoint called from agent.loop after `stop`.
 
     Silently no-ops if disabled, if there's nothing new to summarise, or if the
-    Anthropic call fails. Never raises to the caller.
+    OpenAI call fails. Never raises to the caller.
     """
     settings = get_settings()
     if not settings.memory_auto_summarize:
         return
-    if not settings.anthropic_api_key:
+    if not settings.openai_api_key:
         return
     try:
         await _run(conversation_id, settings)
@@ -64,17 +64,18 @@ async def _run(conversation_id: str, settings: Any) -> None:
     transcript = _render_transcript(fold)
 
     prompt = _build_prompt(prior_summary, transcript)
-    client = Anthropic(api_key=settings.anthropic_api_key)
+    client = OpenAI(api_key=settings.openai_api_key)
     response = await asyncio.to_thread(
-        client.messages.create,
-        model=settings.anthropic_model,
-        max_tokens=SUMMARY_MAX_TOKENS,
+        client.chat.completions.create,
+        model=settings.openai_model,
+        max_completion_tokens=SUMMARY_MAX_TOKENS,
         temperature=0.0,
-        system=SUMMARY_SYSTEM,
-        messages=[{"role": "user", "content": prompt}],
+        messages=[
+            {"role": "system", "content": SUMMARY_SYSTEM},
+            {"role": "user", "content": prompt},
+        ],
     )
-    text_blocks = [b.text for b in response.content if b.type == "text"]
-    summary = ("\n".join(text_blocks)).strip()
+    summary = (response.choices[0].message.content or "").strip()
     if not summary:
         return
 
@@ -126,7 +127,7 @@ def _render_transcript(messages: list[store.MessageRow]) -> str:
 
 
 def _content_to_text(content: list[dict[str, Any]]) -> str:
-    """Flatten Anthropic content blocks down to a plain-text summary line."""
+    """Flatten stored content blocks down to a plain-text summary line."""
     parts: list[str] = []
     for block in content:
         t = block.get("type")

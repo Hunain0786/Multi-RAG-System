@@ -205,7 +205,7 @@ model Message {
   conversationId String       @map("conversation_id")
   seq            Int
   role           String       // 'user' | 'assistant'
-  // Always an array of Anthropic content blocks (text | tool_use | tool_result).
+  // Always an array of content blocks (text | tool_use | tool_result).
   content        Json
   createdAt      DateTime     @default(now()) @map("created_at")
 

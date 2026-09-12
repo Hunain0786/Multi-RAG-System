@@ -14,5 +14,4 @@ if str(SRC) not in sys.path:
 # Prevent registry-startup validation from crashing tests if the env is bare.
 os.environ.setdefault("DATABASE_URL", "postgresql://localhost/dummy")
 os.environ.setdefault("PINECONE_API_KEY", "dummy")
-os.environ.setdefault("ANTHROPIC_API_KEY", "dummy")
 os.environ.setdefault("OPENAI_API_KEY", "dummy")
